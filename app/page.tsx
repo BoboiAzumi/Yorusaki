@@ -2,9 +2,9 @@
 import Navbar from "@/components/Navbar";
 import { Model, Models } from "@/utils/Models"
 import { useEffect, useState } from "react";
-import * as ort from "onnxruntime-web"
 import { ImageToTensor } from "@/utils/Preprocessing";
 import { Inference } from "@/utils/Inference";
+import * as ort from "onnxruntime-web"
 
 export default function Home() {
 	const [selectedModels, setSelectedModels] = useState(0)
@@ -24,15 +24,8 @@ export default function Home() {
     
 	useEffect(() => {
 		if(!model.inputNames) return
-		
 		setModelLoaded(false)
-		model.release()
-		.then(() => {
-			loadModel()
-		})
-		.catch(() => {
-			alert("Failed release model")
-		})
+		loadModel()
 	}, [selectedModels])
 
     
@@ -47,13 +40,19 @@ export default function Home() {
 	}, [imgSrc])
     
 
-	function loadModel(){
-		ort.InferenceSession.create(Models[selectedModels].path)
+	async function loadModel(){
+        if(model.inputNames) await model.release()
+
+		ort.InferenceSession.create(Models[selectedModels].path, {executionProviders: ["cpu", "webgl", "wasm"]})
 		.then((_model) => {
 			setModel(_model)
 			setModelLoaded(true)
 		})
-		.catch(() => alert("Error Loading Model"))
+		.catch((e) => {
+            console.log(e.message)
+            alert("Error Loading Model")
+            loadModel()
+        })
 	}
     
 	return (
@@ -99,7 +98,7 @@ export default function Home() {
                                 <input
                                     type="file"
 									accept="image/*"
-                                    className="file-input max-w-xs"
+                                    className="file-input w-full sm:max-w-xs"
                                     onChange={async (ev) => {
                                         if (ev.target.files && ev.target.files[0] != null) {
                                             const fileReader = new FileReader();
