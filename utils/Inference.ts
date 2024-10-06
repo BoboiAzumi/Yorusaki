@@ -2,7 +2,6 @@ import { InferenceSession, Tensor } from "onnxruntime-web";
 import { Model } from "./Models";
 import { BoundingBox } from "./BoundingBoxTypes";
 import { NonMaxSuppresion } from "./NonMaxSuppression";
-import { Jimp } from "jimp";
 import { createCanvas, CanvasRenderingContext2D, loadImage } from "canvas";
 
 const color = ["red", "blue", "green", "purple"]
@@ -15,13 +14,14 @@ async function generateRectangle(ctx: CanvasRenderingContext2D, x: number, y: nu
     ctx.font = "20px Arial"
     ctx.fillRect(x, ((y - 30) > 0? (y - 30) : y), ((`${model.label[classId]} ${prob.toPrecision(2).toString()}`).length * 10), 30)
     ctx.fillStyle = "white"
-    ctx.fillText(`${model.label[classId]} ${prob.toPrecision(2).toString()}`, x + 2, ((y - 30 + 20) > 0 ? (y - 30 + 20) : (y + 20)))
+    ctx.fillText(`${model.label[classId]} ${prob.toPrecision(2).toString()}`, x + 2, ((y - 30 + 20) >= 10 ? (y - 30 + 20) : (y + 20)))
 }
 
 export async function Inference(tensor: Tensor, runtime: InferenceSession, model: Model, setProgress: Function, ObjectURL: string, setOutputImage: Function, dimension: {w: number, h: number}){
     // Inference
+    console.log(tensor)
     const output = await runtime.run({images: tensor})
-    
+    console.log(output)
     // Postprocessing
     setProgress(2)
     const detection = output.output0.dims[2]
@@ -46,24 +46,25 @@ export async function Inference(tensor: Tensor, runtime: InferenceSession, model
             classId: prob.indexOf(conf)
         } as BoundingBox)
     }
-
+    console.log(box)
     // Filtering
     setProgress(3)
     const filteringBox = NonMaxSuppresion(box)
-    
-    const image = await Jimp.read(ObjectURL).then((buffer) => buffer.resize({w:640, h:640})) 
+    console.log(filteringBox)
 
     const canvas = createCanvas(640, 640)
     const ctx: CanvasRenderingContext2D = canvas.getContext("2d")
 
-    ctx.drawImage(await loadImage(URL.createObjectURL(new Blob([await image.getBuffer("image/png")]))), 0, 0)
+    ctx.drawImage(await loadImage(ObjectURL), 0, 0, 640, 640)
 
     for(let i = 0; i < filteringBox.length; i++){
         generateRectangle(ctx, filteringBox[i].x, filteringBox[i].y, filteringBox[i].w, filteringBox[i].h, filteringBox[i].classId, filteringBox[i].prob, model)
     }
 
-    const resizingImg = await Jimp.read(canvas.toDataURL()).then((buffer) => buffer.resize({w: dimension.w, h: dimension.h}))
+    const resizingCanvas = createCanvas(dimension.w, dimension.h)
+    const ctxResizing = resizingCanvas.getContext("2d")
+    ctxResizing.drawImage(canvas, 0, 0, dimension.w, dimension.h)
 
-    setOutputImage(URL.createObjectURL(new Blob([await resizingImg.getBuffer("image/png")])))
+    setOutputImage(resizingCanvas.toDataURL())
     setProgress(0)
 }

@@ -3,7 +3,6 @@ import Navbar from "@/components/Navbar";
 import { Model, Models } from "@/utils/Models"
 import { useEffect, useState } from "react";
 import * as ort from "onnxruntime-web"
-import Image from "next/image";
 import { ImageToTensor } from "@/utils/Preprocessing";
 import { Inference } from "@/utils/Inference";
 
@@ -17,10 +16,12 @@ export default function Home() {
 	const [imgDimension, setImgDimension] = useState({w: 0, h: 0} as {w: number, h: number})
 	const [outputImage, setOutputImage] = useState("")
 
+    
 	useEffect(() => {
 		loadModel()
 	}, [])
-
+    
+    
 	useEffect(() => {
 		if(!model.inputNames) return
 		
@@ -34,12 +35,17 @@ export default function Home() {
 		})
 	}, [selectedModels])
 
+    
 	useEffect(() => {
 		if(imgSrc == "") return
 
 		ImageToTensor(imgSrc, setTensor, setImgDimension)
-		.catch(() => alert("Failed Preprocessing"))
+		.catch((e) => {
+            alert("Failed Preprocessing")
+            console.log(e.message)
+        })
 	}, [imgSrc])
+    
 
 	function loadModel(){
 		ort.InferenceSession.create(Models[selectedModels].path)
@@ -49,7 +55,7 @@ export default function Home() {
 		})
 		.catch(() => alert("Error Loading Model"))
 	}
-
+    
 	return (
         <div className="min-h-[100vh] bg-base-200">
             <Navbar />
@@ -91,7 +97,7 @@ export default function Home() {
                             <div className="w-full my-3 bg-base-200 p-5 rounded-sm min-h-[10rem] flex flex-col justify-center items-center">
                                 <input
                                     type="file"
-									accept=".jpg, .jpeg, .png, .jfif"
+									accept="image/*"
                                     className="file-input max-w-xs"
                                     onChange={async (ev) => {
                                         if (ev.target.files && ev.target.files[0] != null) {
@@ -119,7 +125,7 @@ export default function Home() {
                                     }}
                                 />
                                 {imgSrc != "" ? (
-                                    <Image
+                                    <img
                                         src={imgSrc}
                                         width={500}
 										height={0}
@@ -133,10 +139,12 @@ export default function Home() {
                             <button
                                 className={"btn w-full "+(progress != 0 ? "hidden" : "")}
 								onClick={() => {
+                                    
 									if (tensor.data != null) {
 										setProgress(1)
 										setTimeout(() => Inference(tensor, model, Models[selectedModels], setProgress, imgSrc, setOutputImage, imgDimension), 100)
 									}
+                                
 								}}
                             >Detect</button>
 							<progress 

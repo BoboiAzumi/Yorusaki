@@ -1,14 +1,18 @@
-import { Jimp } from "jimp";
+import { createCanvas, loadImage } from "canvas";
 import { Tensor } from "onnxruntime-web";
 
 export async function ImageToTensor(ObjectUrl: string, setTensor: Function, setDimension: Function, dims = [1, 3, 640, 640]){
-    const image = await Jimp.read(ObjectUrl)
+    const canvas = createCanvas(dims[2], dims[3])
+    const ctx = canvas.getContext("2d")
+    const image = await loadImage(ObjectUrl)
+
     await setDimension({
-        w: image.bitmap.width,
-        h: image.bitmap.height
+        w: image.width,
+        h: image.height
     })
-    
-    const buffer = image.resize({w: dims[2], h: dims[3]}).bitmap.data
+
+    ctx.drawImage(image, 0, 0, dims[2], dims[3])
+    const buffer = ctx.getImageData(0, 0, dims[2], dims[3]).data
 
     const [red, green, blue] = new Array(new Array<number>(), new Array<number>(), new Array<number>())
 
