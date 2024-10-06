@@ -68,6 +68,7 @@ export default function Home() {
                                 width={100}
                                 className="animate-bounce"
                             />
+                            <h3 className="mt-3 text-sm">Load Model { Models[selectedModels].name }</h3>
                         </div>
                     ) : (
                         <>

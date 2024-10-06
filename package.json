@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "canvas": "^2.11.2",
+    "canvas": "^3.0.0-rc2",
     "next": "14.2.5",
     "onnxruntime-web": "^1.19.2",
     "react": "^18",
