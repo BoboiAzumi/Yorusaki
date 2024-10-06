@@ -3,10 +3,10 @@ export default function Navbar(){
         <div className="navbar shadow-sm bg-base-100">
 			<div className="navbar-start">
                 <div className="flex-none">
-                    <a className="btn btn-ghost text-xl">
+                    <a className="btn btn-ghost text-lg">
                         <img 
                             src="/img/logo.png"
-                            width={45}
+                            width={40}
                         />
                         Yorusaki
                     </a>
@@ -14,7 +14,7 @@ export default function Navbar(){
             </div>
             <div className="navbar-end">
                 <div className="flex-none">
-                    <a className="btn btn-ghost text-xl">
+                    <a className="btn btn-ghost text-xl" href="https://github.com/BoboiAzumi/Yorusaki.git">
                         <img 
                             src="/img/github.svg"
                             width={20}
