@@ -3,25 +3,29 @@ import { Model } from "./Models";
 import { BoundingBox } from "./BoundingBoxTypes";
 import { NonMaxSuppresion } from "./NonMaxSuppression";
 import { createCanvas, CanvasRenderingContext2D, loadImage } from "canvas";
+import { Scaling } from "./Scaling";
 
-const color = ["red", "blue", "green", "purple"]
+const color = ["red", "blue", "green", "purple", "orange", "brown", "gray", "#4800a6", "#0a6500", "#009c2f"]
 
-async function generateRectangle(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, classId: number, prob: number, model: Model){
+async function generateRectangle(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, classId: number, prob: number, model: Model, dimension: {w: number, h: number}){
     const randomColor = color[Math.floor(Math.random() * (color.length - 1))]
+    const c = Scaling(30, 640, dimension.w < dimension.h ? dimension.w : dimension.h)
+    const d = Scaling(20, 640, dimension.w < dimension.h ? dimension.w : dimension.h)
+    const e = Scaling(10, 640, dimension.w < dimension.h ? dimension.w : dimension.h)
+
+    ctx.lineWidth = Scaling(2, 640, dimension.w)
     ctx.fillStyle = randomColor
     ctx.strokeStyle = randomColor
     ctx.strokeRect(x, y, w, h)
-    ctx.font = "20px Arial"
-    ctx.fillRect(x, ((y - 30) > 0? (y - 30) : y), ((`${model.label[classId]} ${prob.toPrecision(2).toString()}`).length * 10), 30)
+    ctx.font = `${d}px Arial`
+    ctx.fillRect(x, ((y - c) > 0? (y - c) : y), ((`${model.label[classId]} ${prob.toPrecision(2).toString()}`).length * e), c)
     ctx.fillStyle = "white"
-    ctx.fillText(`${model.label[classId]} ${prob.toPrecision(2).toString()}`, x + 2, ((y - 30 + 20) >= 10 ? (y - 30 + 20) : (y + 20)))
+    ctx.fillText(`${model.label[classId]} ${prob.toPrecision(2).toString()}`, x + 2, ((y - c + d) >= e ? (y - c + d) : (y + d)))
 }
 
 export async function Inference(tensor: Tensor, runtime: InferenceSession, model: Model, setProgress: Function, ObjectURL: string, setOutputImage: Function, dimension: {w: number, h: number}){
     // Inference
-    console.log(tensor)
     const output = await runtime.run({images: tensor})
-    console.log(output)
     // Postprocessing
     setProgress(2)
     const detection = output.output0.dims[2]
@@ -38,33 +42,27 @@ export async function Inference(tensor: Tensor, runtime: InferenceSession, model
         if(conf < confidenceThreshold) continue
 
         box.push({
-            x: (output.output0.data[i + (detection * 0)] as number) - ((output.output0.data[i + (detection * 2)] as number) / 2),
-            y: (output.output0.data[i + (detection * 1)] as number) - ((output.output0.data[i + (detection * 3)] as number) / 2),
-            w: (output.output0.data[i + (detection * 2)] as number),
-            h: (output.output0.data[i + (detection * 3)] as number),
+            x: Scaling((output.output0.data[i + (detection * 0)] as number) - ((output.output0.data[i + (detection * 2)] as number) / 2), 640, dimension.w),
+            y: Scaling((output.output0.data[i + (detection * 1)] as number) - ((output.output0.data[i + (detection * 3)] as number) / 2), 640, dimension.h),
+            w: Scaling((output.output0.data[i + (detection * 2)] as number), 640, dimension.w),
+            h: Scaling((output.output0.data[i + (detection * 3)] as number), 640, dimension.h),
             prob: conf,
             classId: prob.indexOf(conf)
         } as BoundingBox)
     }
-    console.log(box)
     // Filtering
     setProgress(3)
     const filteringBox = NonMaxSuppresion(box)
-    console.log(filteringBox)
 
-    const canvas = createCanvas(640, 640)
+    const canvas = createCanvas(dimension.w, dimension.h)
     const ctx: CanvasRenderingContext2D = canvas.getContext("2d")
 
-    ctx.drawImage(await loadImage(ObjectURL), 0, 0, 640, 640)
+    ctx.drawImage(await loadImage(ObjectURL), 0, 0, dimension.w, dimension.h)
 
     for(let i = 0; i < filteringBox.length; i++){
-        generateRectangle(ctx, filteringBox[i].x, filteringBox[i].y, filteringBox[i].w, filteringBox[i].h, filteringBox[i].classId, filteringBox[i].prob, model)
+        generateRectangle(ctx, filteringBox[i].x, filteringBox[i].y, filteringBox[i].w, filteringBox[i].h, filteringBox[i].classId, filteringBox[i].prob, model, dimension)
     }
 
-    const resizingCanvas = createCanvas(dimension.w, dimension.h)
-    const ctxResizing = resizingCanvas.getContext("2d")
-    ctxResizing.drawImage(canvas, 0, 0, dimension.w, dimension.h)
-
-    setOutputImage(resizingCanvas.toDataURL())
+    setOutputImage(canvas.toDataURL())
     setProgress(0)
 }
