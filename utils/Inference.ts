@@ -11,7 +11,7 @@ async function generateRectangle(ctx: CanvasRenderingContext2D, x: number, y: nu
     const randomColor = color[Math.floor(Math.random() * (color.length - 1))]
     const c = Scaling(30, 640, dimension.w < dimension.h ? dimension.w : dimension.h)
     const d = Scaling(20, 640, dimension.w < dimension.h ? dimension.w : dimension.h)
-    const e = Scaling(10, 640, dimension.w < dimension.h ? dimension.w : dimension.h)
+    const e = Scaling(12, 640, dimension.w < dimension.h ? dimension.w : dimension.h)
 
     ctx.lineWidth = Scaling(2, 640, dimension.w)
     ctx.fillStyle = randomColor
